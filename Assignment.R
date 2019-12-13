@@ -1,15 +1,13 @@
 #First we need to import the data required for this analysis
-#This requires the tidyverse package so let's load that
-library(tidyverse)
-
-#Now we can import and have a look at the data
 my_data <- read_csv("~/Year 3/Reproducible Data Science/Assignment/my_data.csv")
 literature_data <- read_csv("~/Year 3/Reproducible Data Science/Assignment/literature_data.csv")
 
 #my_data is in wide format rather than long format
 #This means that at the moment each row is one participants data rather than one row per observation
 #So we need to wrangle the data to convert it into long format (r can only analsye data in long format)
-#This requires the package "tidyr" from the tidyverse package
+#This requires the package "tidyr" so let's turn that on
+library(tidyr)
+
 #We can use the "gather()" fucntion from "tidyr" to convert data_1 from wide to long format
 #This new data set will be named "my_data_long"
 #In the "gather()" function we will need to state which data set it is that we are reformatting, what we want the new
@@ -20,7 +18,10 @@ my_data_long <- gather(my_data, "condition", "reaction time", c("common_word", "
 str(my_data_long)
 
 #Now we want to combine the two datasets "my_data" and "literature_data"
-#We can use the "inner_join()" function from "dplyr" (part of the tidyverse package) to join our two datasets
+#We can use the "inner_join()" function from "dplyr" to join our two datasets
+#So let's turn on the dplyr package
+library(dplyr)
+
 #In both datasets, the same participant number refers to the same individual
 #So we can join the two datasets by matching these participant numbers
 #This joined dataset will be called "my_data_all"
@@ -44,12 +45,15 @@ my_data_all_long$condition <- as.factor(my_data_all_long$condition)
 #Let's have a look at the structure for this
 str(my_data_all_long)
 
-#So let's use the package "ggplot2" (part of the tidyverse package) to visualise this data
+#So let's use the package "ggplot2" to visualise this data
+library(ggplot2)
+
 #From this data I want to see if people react faster to more common words and whether a persons reaction time to words
 #is influenced by their exposure to literature
 #First I will create a violin plot comparing peoples reactions times to common and rare words
 #This requires the package Hmisc so lets turn that on
 library(Hmisc)
+
 #Now that's on let's make a violin plot.
 my_data_all_long %>%
   group_by(condition) %>%
