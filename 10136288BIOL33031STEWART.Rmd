@@ -1,0 +1,125 @@
+---
+title: "BIOL33031 Assignment - Analysis of Reaction Times to Common and Rare Words"
+author: '10136288'
+date: "16/01/2020"
+output: html_document
+---
+
+## Question 1
+First we need to import the data required for this analysis:
+```{r}
+my_data <- read.csv("~/Year 3/Reproducible Data Science/Assignment/my_data.csv")
+literature_data <- read.csv("~/Year 3/Reproducible Data Science/Assignment/literature_data.csv")
+```
+
+"my_data" is in wide format rather than long format. This means that at the moment there is one row per participant rather than one row per observation. We need to wrangle the data to convert it into long format as R can only analsye data in long format.  
+This requires the "tidyr" package. "tidyr" is part of the tidyverse package. As this project will be using a number of packages in the tidyverse, we can simply turn on the tidyverse package rather than turning on each package individually:
+```{r message = FALSE}
+library(tidyverse)
+```
+
+We can use the "gather()" fucntion from "tidyr" to convert "my_data" from wide to long format. This new data set will be named "my_data_long".  
+In the "gather()" function we will need to state which data set it is that we are reformatting, what we want the new
+column names to be (condition and reaction time) and which columns from the orginal dataset we want to collapse and include in this new long format (i.e. we want to combine the common_word and rare_word columns to give rise to the condition and reaction time columns).  
+This can be written in r as follows:
+```{r}
+my_data_long <- gather(my_data, "condition", "reaction time", c("common_word", "rare_word"))
+```
+
+Now lets have a look to make sure this reformatting has worked by looking at the structure of "my_data_long":
+```{r}
+str(my_data_long)
+```
+
+We can see from this our data wrangling has been successful and we now have "my_data_long" in long format.
+
+## Question 2
+Now we want to combine the two datasets "my_data" and "literature_data".  
+We can use the "inner_join()" function from "dplyr" to join our two datasets. "dplyr" is part of the tidyverse so has already been turned on.  
+In both datasets, the same participant number refers to the same individual so we can join the two datasets by matching these participant numbers.   
+This joined dataset will be called "all_data":
+```{r}
+all_data <- inner_join(my_data, literature_data, by = c("participant"))
+```
+
+Now let's have a look at this to make sure joining the datasets has worked:
+```{r}
+str(all_data)
+```
+
+Here we can see joining the datasets has been successful.  
+However, this combined dataset is in wide format. We need to wrangle the data to get it into long format. This will be done as before using the "gather()" function.  
+This new dataset will be called "all_data_long":
+```{r}
+all_data_long <- gather(all_data, "condition", "reaction_time", c("common_word", "rare_word"))
+```
+
+Now our data is in long format we want to label condition (i.e. whether the word is common or rare) as a factor that could affect reaction time.  
+We can do this using the "as.factor()" function:
+```{r}
+all_data_long$condition <- as.factor(all_data_long$condition)
+```
+
+Let's have a look at the structure of this dataset to ensure our wrangling has worked:
+```{r}
+str(all_data_long)
+```
+We can see from this that we have successfully managed to produce a combine dataset in long format with condition labelled as a factor that may affect reaction time.
+
+## Question 3
+We now want to visualise the data.  
+This uses the "ggplot2" package. As this is part of the tidyverse which has already been tured on, we do not need to turn on the ggplot2 package individually.  
+From this data I want to see if people react faster to more common words and whether a persons reaction time to words
+is influenced by their exposure to literature.  
+First I will create a violin plot comparing peoples reactions times to common and rare words. As well as ggplot2, this requires the package Hmisc so lets turn that on:
+```{r message = FALSE}
+library(Hmisc)
+```
+
+Now that's on let's make a violin plot to visualise the pattern and spread of the data:
+```{r}
+all_data_long %>%
+  group_by(condition) %>%
+  ggplot(aes(x = condition, y = reaction_time, colour = condition)) +
+  geom_violin() +
+  geom_jitter(alpha = .5, position = position_jitter(0.05)) +
+  guides(colour = FALSE, fill = FALSE) +
+  stat_summary(fun.data = "mean_cl_boot", colour = "black", size = 1) +
+  labs(title = "Reaction Times to Different Types of Words", x = "Word Type", y = "Reaction Time (ms)")
+```
+
+We can also visualise the data using a boxplot:
+```{r}
+all_data_long %>%
+  group_by(condition) %>%
+  ggplot(aes(x = condition, y = reaction_time, colour = condition)) +
+  geom_boxplot() +
+  guides(colour = FALSE) +
+  labs(title = "Reaction Times to Different Types of Words", x = "Word Type", y = "Reaction Time (ms)")
+```
+
+Through these visualisations we can see people's reaction times to common words were typically faster.
+
+## Question 4
+A particpants engagement with literature may affect their reaction time to common or rare words (i.e. engagment with literature may be acting as a covariate). As a result, we will want to remove this co-variate when doing an ANOVA test to determine if reaction time to a word is influenced by whether the word is common or rare.
+This can be done using an ANCOVA test.  
+This uses the "afex" package so we need to turn that on:
+```{r message = FALSE}
+library(afex)
+```
+
+Now the afex package is turned on, we can build a model which we will perform the ANCOVA test on:
+```{r warning = FALSE}
+model <- aov_4(reaction_time ~ literature + condition + (1 + condition | participant), data = all_data_long,
+               factorize = FALSE)
+```
+
+Now using this model, we can perform the ANCOVA test:
+```{r}
+anova(model)
+```
+
+We can see that when covarying for literature engagement, the condition does not have a significant effect on the reaction time as F<1. This means that whether the word is common or rare does not affect the reaction time to the word when eliminating literature engagement as a covariate (i.e. when eliminating the possible effect literature enagement has on reaction time to different words). 
+We can also see that literature engagement does not have a significant effect on reaction time to common and rare words (F>1). This means literature engagement does not affect reaction time to different types of words.  
+This may be due to the experiment being underpowered (i.e. not a big enough sample size). However, we cannot know this for sure.  
+In the interest of open science, this assignment and the associated datasets and R files etc. have been saved into my GitHub repository (Please note: Unfortunately due to a risk of others plagiarising my work - for which I would be penalsied by the University - this repository will have to remain private until the submission deadline. Following the deadline, the risk of plagiarism is removed so the repository will be made open to the public!).
