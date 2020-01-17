@@ -1,5 +1,0 @@
-install.packages("tidyr")
-install.packages("dplyr")
-install.packages("ggplot2")
-install.packages("afex")
-install.packages("Hmisc")
